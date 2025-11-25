@@ -20,7 +20,7 @@
     crossorigin
   >
   <link
-    href="https://fonts.googleapis.com/css2?family=Jost:wght@100..900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=BBH+Sans+Hegarty&family=Google+Sans+Flex:opsz,wght@6..144,1..1000&family=Special+Elite&display=swap"
     rel="stylesheet"
   >
   <link
@@ -35,25 +35,28 @@
 </head>
 
 <body>
-  <header>
-    <div class="header-left">
-      <h1>Image Uploads</h1>
-      <h4>CRUD + <a href="https://vercel.com/docs/vercel-blob">blob storage</a> = 💖</h4>
+  <header class="site-header">
+    <img
+      id="logo"
+      src="/assets/cat.svg"
+      alt="Home"
+    />
+    <div class="site-title">
+      <h1>Personal Data</h1>
+      <h3><a href="https://developer.mozilla.org/en-US/docs/Glossary/CRUD">CRUD</a> +
+        <a href="https://vercel.com/docs/vercel-blob">blob storage</a>
+        +
+        <a href="https://auth0.com/">Auth0</a>
+      </h3>
     </div>
     <section id="profile"></section>
+    <section id="controls"></section>
   </header>
-  <section id="status">
-    <p id="readyStatus">✅ MongoDB is Ready</p>
-    <p id="notReadyStatus">❌ MongoDB is not connected. Please check your connection string in <code>.env</code> file.
-    </p>
-  </section>
-  <button id="createButton">Create New Cat</button>
 
   <dialog id="formDialog">
     <div class="modal-container">
       <div class="modal-header">
-        <h2>🐈 Share a Cat</h2>
-        <p>Share your kitty with the community</p>
+        <h2>Share a Cat</h2>
       </div>
 
       <div class="modal-body">
@@ -81,7 +84,7 @@
             <div id="uploadArea">
               <img
                 id="imagePreview"
-                src="assets/photo.svg"
+                src="/assets/photo.svg"
                 alt="Image preview"
               />
               <div class="upload-controls">
@@ -304,42 +307,40 @@
   </dialog>
 
   <main>
-    <h2>🐈 Noteworthy Cats</h2>
     <section id="contentArea"></section>
   </main>
 
+  <section id="status">
+    <p id="readyStatus">✅ MongoDB is Ready</p>
+    <p id="notReadyStatus">❌ MongoDB is not connected. Please check your connection string in <code>.env</code> file.
+    </p>
+  </section>
+
   <section id="intro">
     <h3>About</h3>
-    <p>Building on <a href="https://github.com/ixd-system-design/Managing-Data">prior explorations with CRUD</a>,
-      this demo adds functionality for photo uploads. This application demonstrates how to handle image uploads,
-      process them on the server, and store them in the cloud using <a href="https://vercel.com/docs/vercel-blob">Vercel
-        Blob Storage</a>.
+    <p>Building on <a href="https://github.com/ixd-system-design/Uploading-Images">prior explorations with CRUD and
+        Image Uploads</a>,
+      this demo adds functionality for user authentication <a href="https://auth0.com/">via Auth0</a> and the <a
+        href="https://github.com/auth0/express-openid-connect"
+      >Express OpenID Connect</a> library. The application uses MongoDB to persist data and to define the owner of each
+      record. Accordingly, our <a href="https://www.prisma.io/orm">Prisma</a> schema includes models for both users and
+      cats.
     </p>
-    <p>The upload workflow involves several key technologies working together:
-    <ol>
-      <li><strong>Custom Upload UI:</strong> The default file input has been enhanced with a custom interface that
-        supports both browsing and drag-and-drop functionality (on devices with a mouse).</li>
-      <li><strong>BusBoy:</strong> On the backend, the <a href="https://www.npmjs.com/package/busboy">BusBoy</a>
-        library parses multipart form data to handle file uploads.</li>
-      <li><strong>Sharp:</strong> The <a href="https://sharp.pixelplumbing.com/">Sharp</a> library resizes uploaded
-        images to a predictable size, ensuring performance and preventing system abuse.</li>
-      <li><strong>Vercel Blob Storage:</strong> Processed images are stored in the cloud, generating a public URL
-        which is then saved to MongoDB as a string reference.</li>
-    </ol>
-    </p>
-    <p>
-      The application maintains full CRUD functionality. When editing an item, the ID is stored in a hidden input field
-      to track which record is being modified. Image URLs are also stored in a hidden field, allowing the system to
-      manage both text data and image references seamlessly.
-    </p>
-
-    <h3>Learning Prompts</h3>
-    <p>Can you create a system map to describe the architecture of this web app?</p>
-    <p>Having added an image upload capability, what new use cases emerge?</p>
-    <p>Try uploading an image: drag and drop a photo, or click Browse to select one. Notice how it gets resized and
-      stored in the cloud.</p>
-    <p>Explore how the form handles both text fields and file uploads together in a single submission.</p>
+    <p>Backend endpoints include the following logic:</p>
+    <ul>
+      <li>Only authenticated users can create, update, or delete cat records.</li>
+      <li>Each cat record is associated with the user who created it.</li>
+      <li>Users can only modify or delete their own cat records.</li>
+      <li>All users can view all cat records, regardless of ownership.</li>
+    </ul>
+    <p>Frontend interfaces reflect these options by revealing and concealing buttons depending on the user's logged-in
+      state, and their relationship to the data.</p>
+    <p>The pattern being used here assumes that the backend enforces the rules, while the frontend communicates those
+      rules to the user. </p>
   </section>
+
+
+
 
   <footer>
     Created by <a href="https://nsitu.ca">Harold Sikkema</a> in the context of
@@ -351,7 +352,6 @@
     type="module"
   ></script>
 
-  <script src="upload.js"></script>
 
 </body>
 

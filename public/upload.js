@@ -1,18 +1,18 @@
 // Upload module for handling image uploads to Vercel Blob
 
-const imagePreview = document.querySelector('#imagePreview')
-const fileInput = document.querySelector('#fileInput')
-const uploadArea = document.querySelector('#uploadArea')
-const noticeArea = document.querySelector('#noticeArea')
-const myForm = document.querySelector('#myForm')
-const removeImageButton = document.querySelector('#removeImageButton')
-const browseButton = document.querySelector('#browseButton')
-const uploadInstructions = document.querySelector('#uploadInstructions')
+export const imagePreview = document.querySelector('#imagePreview')
+export const fileInput = document.querySelector('#fileInput')
+export const uploadArea = document.querySelector('#uploadArea')
+export const noticeArea = document.querySelector('#noticeArea')
+export const myForm = document.querySelector('#myForm')
+export const removeImageButton = document.querySelector('#removeImageButton')
+export const browseButton = document.querySelector('#browseButton')
+export const uploadInstructions = document.querySelector('#uploadInstructions')
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+export const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 // Show or hide the Browse / Replace button based on whether an image is uploaded
-const updateButtonVisibility = () => {
+export const refreshUI = () => {
     const imageUrl = myForm.elements['imageUrl'].value
     const hasImage = imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')
     const hasFinePointer = window.matchMedia('(pointer: fine)').matches
@@ -30,7 +30,7 @@ const updateButtonVisibility = () => {
 }
 
 // Remove the uploaded image
-const removeImage = async () => {
+export const removeImage = async () => {
     const imageUrl = myForm.elements['imageUrl'].value
 
     // If there's a valid image URL, delete it from Vercel Blob
@@ -64,16 +64,16 @@ const removeImage = async () => {
 
     // Reset the form field and preview
     myForm.elements['imageUrl'].value = ''
-    imagePreview.setAttribute('src', 'assets/photo.svg')
+    imagePreview.setAttribute('src', '/assets/photo.svg')
     fileInput.value = ''
     noticeArea.style.display = 'none'
 
     // Update button visibility
-    updateButtonVisibility()
+    refreshUI()
 }
 
 // Upload a file to the server
-const upload = async (theFile) => {
+export const upload = async (theFile) => {
     // Validate file size
     if (theFile.size > MAX_FILE_SIZE) {
         alert('Maximum file size is 10MB')
@@ -88,7 +88,7 @@ const upload = async (theFile) => {
     }
 
     // Show loading state
-    imagePreview.setAttribute('src', 'assets/load.svg')
+    imagePreview.setAttribute('src', '/assets/load.svg')
     noticeArea.style.display = 'none'
 
     // Prepare upload 
@@ -117,7 +117,7 @@ const upload = async (theFile) => {
             const errorData = await response.json()
             noticeArea.style.display = 'block'
             noticeArea.textContent = errorData.error || 'Upload failed'
-            imagePreview.setAttribute('src', 'assets/photo.svg')
+            imagePreview.setAttribute('src', '/assets/photo.svg')
             return
         }
 
@@ -131,13 +131,13 @@ const upload = async (theFile) => {
         myForm.elements['imageUrl'].value = uploadDetails.url
 
         // Update button visibility
-        updateButtonVisibility()
+        refreshUI()
 
     } catch (err) {
         console.error('Upload error:', err)
         noticeArea.style.display = 'block'
         noticeArea.textContent = 'An error occurred during upload'
-        imagePreview.setAttribute('src', 'assets/photo.svg')
+        imagePreview.setAttribute('src', '/assets/photo.svg')
     }
 }
 
@@ -193,12 +193,9 @@ if (window.matchMedia('(pointer: fine)').matches) {
     }
 }
 
-// Make updateButtonVisibility available globally
-window.updateButtonVisibility = updateButtonVisibility
-
 // Initialize upload instructions visibility based on pointer capability
 // Hide by default, only show on devices with fine pointer control
 uploadInstructions.style.display = window.matchMedia('(pointer: fine)').matches ? 'block' : 'none'
 
 // Initialize button visibility on page load
-updateButtonVisibility()
+refreshUI()

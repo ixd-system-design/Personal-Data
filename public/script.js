@@ -1,3 +1,5 @@
+// Main UI script (includes upload logic)
+
 let readyStatus = document.querySelector('#readyStatus')
 let notReadyStatus = document.querySelector('#notReadyStatus')
 let myForm = document.querySelector('#myForm')
@@ -10,13 +12,156 @@ let formHeading = document.querySelector('.modal-header h2')
 
 // Auth/user profile elements
 let profileArea = document.querySelector('#profile')
+let controlsArea = document.querySelector('#controls')
+let logo = document.querySelector('#logo')
+let dataFilter = null
+
+// Upload elements
+const imagePreview = document.querySelector('#imagePreview')
+const fileInput = document.querySelector('#fileInput')
+const uploadArea = document.querySelector('#uploadArea')
+const noticeArea = document.querySelector('#noticeArea')
+const removeImageButton = document.querySelector('#removeImageButton')
+const browseButton = document.querySelector('#browseButton')
+const uploadInstructions = document.querySelector('#uploadInstructions')
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 // Global auth state
 let currentUser = {
     isAuthenticated: false,
     name: 'Guest',
     email: '',
-    picture: ''
+    picture: '',
+    sub: null
+}
+
+const setImagePreview = (url) => {
+    imagePreview.setAttribute('src', url || '/assets/photo.svg')
+}
+
+const getImageUrl = () => {
+    const field = myForm.elements['imageUrl']
+    return field ? field.value : ''
+}
+
+const setImageUrl = (url) => {
+    const field = myForm.elements['imageUrl']
+    if (field) field.value = url
+    setImagePreview(url)
+}
+
+// Show or hide the Browse / Replace button based on whether an image is uploaded
+const refreshUI = () => {
+    const imageUrl = getImageUrl()
+    const hasImage = imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')
+    const hasFinePointer = window.matchMedia('(pointer: fine)').matches
+
+    if (hasImage) {
+        removeImageButton.style.display = 'block'
+        browseButton.textContent = 'Replace'
+        uploadInstructions.style.display = 'none'
+    } else {
+        removeImageButton.style.display = 'none'
+        browseButton.textContent = 'Browse'
+        // Only show upload instructions on devices with fine pointer control (mouse)
+        uploadInstructions.style.display = hasFinePointer ? 'block' : 'none'
+    }
+}
+
+// Remove the uploaded image
+const removeImage = async () => {
+    const imageUrl = getImageUrl()
+
+    // If there's a valid image URL, delete it from Vercel Blob
+    if (imageUrl && imageUrl !== '' && !imageUrl.includes('photo.svg')) {
+        try {
+            const response = await fetch('/api/image', {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: imageUrl })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                console.error('Delete error:', errorData)
+                noticeArea.style.display = 'block'
+                noticeArea.textContent = errorData.error || 'Failed to delete image'
+                return
+            }
+
+            console.log('Image deleted successfully')
+        } catch (err) {
+            console.error('Delete error:', err)
+            noticeArea.style.display = 'block'
+            noticeArea.textContent = 'An error occurred while deleting the image'
+            return
+        }
+    }
+
+    // Reset the form field and preview
+    setImageUrl('')
+    fileInput.value = ''
+    noticeArea.style.display = 'none'
+
+    // Update button visibility
+    refreshUI()
+}
+
+// Upload a file to the server
+const upload = async (theFile) => {
+    // Validate file size
+    if (theFile.size > MAX_FILE_SIZE) {
+        alert('Maximum file size is 10MB')
+        return
+    }
+
+    // Validate file type
+    if (!theFile.type.startsWith('image/')) {
+        noticeArea.style.display = 'block'
+        noticeArea.textContent = 'Only image files are supported.'
+        return
+    }
+
+    // Show loading state
+    setImagePreview('/assets/load.svg')
+    noticeArea.style.display = 'none'
+
+    const formData = new FormData()
+    formData.append('image', theFile)
+
+    try {
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json()
+            noticeArea.style.display = 'block'
+            noticeArea.textContent = errorData.error || 'Upload failed'
+            imagePreview.setAttribute('src', '/assets/photo.svg')
+            return
+        }
+
+        const uploadDetails = await response.json()
+        console.log('Upload successful:', uploadDetails)
+
+        // Store URL in hidden form field and update preview
+        setImageUrl(uploadDetails.url)
+
+        // Update button visibility
+        refreshUI()
+
+    } catch (err) {
+        console.error('Upload error:', err)
+        noticeArea.style.display = 'block'
+        noticeArea.textContent = 'An error occurred during upload'
+        setImageUrl('')
+    }
 }
 
 // Load user info from backend
@@ -29,30 +174,50 @@ const loadUser = async () => {
         const data = await res.json()
         currentUser = {
             isAuthenticated: !!data.isAuthenticated,
+            sub: data.sub || null,           // add this line
             name: data.name || 'Guest',
             email: data.email || '',
             picture: data.picture || '/assets/user.svg'
         }
 
-        if (profileArea) {
-            const authButton = currentUser.isAuthenticated
-                ? '<a class="button" href="/logout">Logout</a>'
-                : '<a class="button" href="/login">Login</a>'
-
-            profileArea.innerHTML = `
-                <img src="${currentUser.picture}" onerror="this.onerror=null;this.src='/assets/user.svg';">
+        profileArea.innerHTML = `
+                <img src="${currentUser.picture}" referrerPolicy="no-referrer" crossorigin="anonymous" onerror="this.onerror=null;this.src='/assets/user.svg';">
                 <div>
-                    <h4>${DOMPurify.sanitize(currentUser.name)}</h4>
-                    <h5>${DOMPurify.sanitize(currentUser.email || '')}</h5>
+                    <h4>${currentUser.name}</h4>
+                    <h5>${currentUser.email || ''}</h5>
                 </div>
-                ${authButton}
             `
-        }
 
-        // Auth-sensitive UI: create button
-        if (createButton) {
-            createButton.style.display = currentUser.isAuthenticated ? 'inline-block' : 'none'
-        }
+        controlsArea.innerHTML = currentUser.isAuthenticated ? `
+        
+         <label class="filter-label">
+                    <img src="/assets/filter.svg" alt="Filter" />  
+                    <select id="dataFilter">
+                        <option value="all">All Data</option>
+                        <option value="mine">Owned by Me</option>
+                        <option value="others">Owned by Others</option>
+                    </select>
+                </label>
+<button class="button" id="createButton">Create</button>
+                <button id="logoutButton" class="button">Logout</button>
+            ` :
+
+            '<button id="loginButton" class="button">Login</button>'
+
+        // Wire up dynamically created create button
+        document.querySelector('#createButton')?.addEventListener('click', openCreateDialog)
+
+        // Wire up dynamically created auth buttons
+        controlsArea.querySelector('#loginButton')?.addEventListener('click', () => window.location.href = '/login')
+        controlsArea.querySelector('#logoutButton')?.addEventListener('click', () => window.location.href = '/logout')
+
+
+        // Wire up dynamically created filter  
+        document.querySelector('#dataFilter')?.addEventListener('change', (e) => {
+            applyFilter(e.target.value)
+        })
+
+
     } catch (err) {
         console.error('Error loading user:', err)
     }
@@ -99,11 +264,17 @@ myForm.addEventListener('submit', async event => {
     formDialog.close()
 })
 
-// Open dialog when create button clicked
-createButton.addEventListener('click', () => {
+const openCreateDialog = () => {
     myForm.reset()
+    setImageUrl('')
+    refreshUI()
     formDialog.showModal()
-})
+}
+
+// Open dialog when initial create button clicked (if present in DOM)
+if (createButton) {
+    createButton.addEventListener('click', openCreateDialog)
+}
 
 // Close dialog when cancel button clicked
 cancelButton.addEventListener('click', () => {
@@ -192,21 +363,12 @@ const editItem = (data) => {
         }
     })
 
-    // Update image preview if image exists
-    const imagePreview = document.querySelector('#imagePreview')
-    if (data.imageUrl) {
-        imagePreview.setAttribute('src', data.imageUrl)
-    } else {
-        imagePreview.setAttribute('src', 'assets/photo.svg')
-    }
-
-    // Update remove button visibility (requires upload.js to be loaded)
-    if (typeof updateButtonVisibility === 'function') {
-        updateButtonVisibility()
-    }
+    // Update image preview and upload UI
+    setImagePreview(data.imageUrl || null)
+    refreshUI()
 
     // Update the heading to indicate edit mode
-    formHeading.textContent = '🐈 Edit Cat'
+    formHeading.textContent = 'Edit Cat'
 
     // Show the dialog
     formDialog.showModal()
@@ -263,6 +425,15 @@ const calendarWidget = (date) => {
 
 }
 
+const isOwner = (item) => {
+    return !!(
+        currentUser.isAuthenticated &&
+        item.owner &&
+        item.owner.sub &&
+        item.owner.sub === currentUser.sub
+    )
+}
+
 // Render a single item
 const renderItem = (item) => {
     const div = document.createElement('div')
@@ -279,8 +450,6 @@ const renderItem = (item) => {
         :
         ''
 
-    // Determine ownership for UI (requires backend to include owner info or ownerId mapping)
-    const isOwner = currentUser.isAuthenticated && item.owner && item.owner.sub && item.owner.sub === (window.__currentSub || currentUser.sub)
 
     const template = /*html*/`
     
@@ -289,10 +458,10 @@ const renderItem = (item) => {
     <div class="item-heading">
         <h3> ${item.name} </h3>
         <div class="microchip-info">
-            <img src="./assets/chip.svg" /> ${item.microchip || '<i>???</i>'} 
+            <img src="/assets/chip.svg" /> ${item.microchip || '<i>???</i>'} 
         </div>  
     </div>
-    <div class="item-info"> 
+    <div class="item-info">  
         <div class="item-icon" style="
             background: linear-gradient(135deg, 
             ${item.primaryColor} 0%, 
@@ -316,14 +485,18 @@ const renderItem = (item) => {
     </div>
         
     <div class="item-info">  
+        <section class="owner" style="${currentUser.isAuthenticated && item.owner && item.owner.name ? '' : 'display:none;'}">
+    <img src="${item.owner && item.owner.picture ? item.owner.picture : '/assets/user.svg'}" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='/assets/user.svg';" />
+    <span>${item.owner && item.owner.name ? item.owner.name : ''}</span>
+</section>
         <section class="breed" style="${item.breed ? '' : 'display:none;'}">  
-            <img src="./assets/ribbon.svg" />  ${item.breed}
+            <img src="/assets/ribbon.svg" />  ${item.breed}
         </section>
         <section class="food" style="${item.food ? '' : 'display:none;'}">
-             <img src="./assets/${item.food}.svg" /> <span>${item.food} food</span>
+             ${item.food ? `<img src="/assets/${item.food}.svg" /> <span>${item.food} food</span>` : ''}
         </section> 
         <section class="adoption">
-            <img src="./assets/${item.isAdopted ? 'adopted' : 'paw'}.svg" />
+            <img src="/assets/${item.isAdopted ? 'adopted' : 'paw'}.svg" />
             ${item.isAdopted ? 'Adopted' : 'Available'}
         </section> 
     </div>
@@ -335,28 +508,30 @@ const renderItem = (item) => {
         
            
         <div class="item-actions">
-            <button class="edit-btn" ${currentUser.isAuthenticated ? '' : 'disabled'}>${currentUser.isAuthenticated ? 'Edit' : 'Login to edit'}</button>
-            <button class="delete-btn" ${currentUser.isAuthenticated ? '' : 'disabled'}>${currentUser.isAuthenticated ? 'Delete' : 'Login to delete'}</button>
+            ${isOwner(item) ? `
+                <button class="edit-btn">Edit</button>
+                <button class="delete-btn">Delete</button>
+            ` : ''}
         </div>
     `
-    div.innerHTML = DOMPurify.sanitize(template);
+    // Sanitize HTML but allow referrerpolicy attribute on images
+    // so that google profile pics can be used without errors
+    const sanitizeOptions = { ADD_ATTR: ['referrerpolicy'] }
 
+    // add sanitized HTML to div
+    div.innerHTML = DOMPurify.sanitize(template, sanitizeOptions);
+
+
+    // If buttons exist (owner only), wire up handlers
     const editBtn = div.querySelector('.edit-btn')
     const deleteBtn = div.querySelector('.delete-btn')
 
-    // Disable actions for guests entirely
-    if (!currentUser.isAuthenticated) {
-        editBtn.addEventListener('click', () => {
-            alert('Please log in to edit cats.')
-        })
-        deleteBtn.addEventListener('click', () => {
-            alert('Please log in to delete cats.')
-        })
-    } else {
-        // When ownership data is available, enforce owner-only actions on the client too
+    if (editBtn && deleteBtn) {
         editBtn.addEventListener('click', () => editItem(item))
         deleteBtn.addEventListener('click', () => deleteItem(item.id))
     }
+
+    if (isOwner(item)) div.classList.add('owned')
 
     return div
 }
@@ -401,24 +576,111 @@ const getData = async () => {
 
 // Revert to the default form title on reset
 myForm.addEventListener('reset', () => {
-    formHeading.textContent = '🐈 Share a Cat'
+    formHeading.textContent = 'Share a Cat'
     // Reset image preview
-    const imagePreview = document.querySelector('#imagePreview')
-    if (imagePreview) {
-        imagePreview.setAttribute('src', 'assets/photo.svg')
-    }
-    // Update remove button visibility
-    if (typeof updateButtonVisibility === 'function') {
-        updateButtonVisibility()
-    }
+    setImagePreview(null)
+    // Update upload UI
+    refreshUI()
 })
 
 // Reset the form when the create button is clicked. 
-createButton.addEventListener('click', () => {
-    myForm.reset()
-})
+if (createButton) {
+    createButton.addEventListener('click', () => {
+        myForm.reset()
+    })
+}
 
-// Load initial data
-loadUser().finally(() => {
-    getData()
-})
+// Initialize upload instructions visibility based on pointer capability
+// Hide by default, only show on devices with fine pointer control
+if (uploadInstructions) {
+    uploadInstructions.style.display = window.matchMedia('(pointer: fine)').matches ? 'block' : 'none'
+}
+
+
+// Remove Image Button Click Handler
+if (removeImageButton) {
+    removeImageButton.addEventListener('click', (event) => {
+        event.stopPropagation() // Prevent triggering the uploadArea click
+        removeImage()
+    })
+}
+
+// BROWSE BUTTON
+if (browseButton) {
+    browseButton.addEventListener('click', (event) => {
+        event.stopPropagation() // Prevent triggering the uploadArea click
+        fileInput.click()
+    })
+}
+
+// FILE INPUT CHANGE
+if (fileInput) {
+    fileInput.addEventListener('change', (event) => {
+        const file = event.currentTarget.files[0]
+        if (file) upload(file)
+    })
+}
+
+// CLICK ANYWHERE ON UPLOAD AREA (only when no image is uploaded)
+if (uploadArea) {
+    uploadArea.addEventListener('click', (event) => {
+        // Only trigger file input if clicking the upload area itself, not buttons
+        if (event.target === uploadArea || event.target === imagePreview) {
+            fileInput.click()
+        }
+    })
+}
+
+// DRAG AND DROP (for devices with fine pointer control)
+if (uploadArea && window.matchMedia('(pointer: fine)').matches) {
+    const dragAndDropEvents = {
+        dragenter: () => uploadArea.classList.add('ready'),
+        dragover: () => uploadArea.classList.add('ready'),
+        dragleave: (event) => {
+            if (!uploadArea.contains(event.relatedTarget)) {
+                uploadArea.classList.remove('ready')
+            }
+        },
+        drop: (event) => {
+            uploadArea.classList.remove('ready')
+            const file = event.dataTransfer.files[0]
+            if (file) upload(file)
+        }
+    }
+
+    for (const [eventName, handler] of Object.entries(dragAndDropEvents)) {
+        uploadArea.addEventListener(eventName, (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+        })
+        uploadArea.addEventListener(eventName, handler)
+    }
+}
+
+// Apply front-end filter based on ownership
+const applyFilter = (mode) => {
+    const cards = contentArea.querySelectorAll('.item-card')
+    cards.forEach(card => {
+        const isOwned = card.classList.contains('owned')
+        if (mode === 'mine') {
+            card.style.display = isOwned ? '' : 'none'
+        } else if (mode === 'others') {
+            card.style.display = isOwned ? 'none' : ''
+        } else {
+            card.style.display = ''
+        }
+    })
+}
+
+// Clicking logo: navigate home  
+if (logo) {
+    logo.addEventListener('click', () => window.location.href = '/')
+}
+
+// Initialize app
+const init = async () => {
+    await loadUser()
+    await getData()
+}
+
+init()

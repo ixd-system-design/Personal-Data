@@ -12,12 +12,33 @@ const model = 'cats'
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
-// Auth0 OpenID Connect (req.oidc)
-import auth0 from 'express-openid-connect'
-const { requiresAuth } = auth0
 
 // User lifecycle helper
-import { ensureUser } from '../helpers/userHelper.js'
+async function ensureUser(oidcUser) {
+    if (!oidcUser || !oidcUser.sub) {
+        throw new Error('Cannot ensure user without a valid Auth0 sub')
+    }
+    const { sub, email, name, picture } = oidcUser
+    // an upsert will perform either an update or a create
+    // - update the user if they already exist, or 
+    // - create a new user record if they do not exist yet
+    const user = await prisma.user.upsert({
+        where: { sub },
+        update: {
+            email: email || null,
+            name: name || null,
+            picture: picture || null
+        },
+        create: {
+            sub,
+            email: email || null,
+            name: name || null,
+            picture: picture || null
+        }
+    })
+    return user
+}
+
 
 // Import del function from Vercel Blob for image cleanup
 import { del } from '@vercel/blob'
@@ -86,9 +107,10 @@ router.post('/data', async (req, res) => {
 // ----- READ (GET) list ----- 
 router.get('/data', async (req, res) => {
     try {
-        // fetch first 100 records from the database with no filter
+        // Frontend is responsible for filtering owned vs all.
         const result = await prisma[model].findMany({
-            take: 100
+            take: 100,
+            include: { owner: true }
         })
         res.send(result)
     } catch (err) {
@@ -114,6 +136,7 @@ router.get('/search', async (req, res) => {
                     mode: 'insensitive'  // case-insensitive search
                 }
             },
+            include: { owner: true },
             orderBy: { name: 'asc' },
             take: 10
         })

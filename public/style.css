@@ -1,17 +1,24 @@
 body {
-
     height: 100%;
     width: 100%;
     margin: 0;
     text-align: center;
-    font-family: "Jost", sans-serif;
+    font-family: "Google Sans Flex", sans-serif;
     font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+    font-variation-settings:
+        "slnt" 0,
+        "wdth" 100,
+        "GRAD" 0,
+        "ROND" 0;
+
     font-weight: 400;
     font-style: normal;
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-color: rgb(238, 227, 144)
+    background-color: rgb(221 192 216)
 }
 
 
@@ -52,11 +59,12 @@ footer {
 }
 
 
-
 header p,
 header ul {
     margin: 1rem;
 }
+
+
 
 #intro {
     max-width: 60rem;
@@ -64,23 +72,45 @@ header ul {
     text-align: left;
 }
 
-button {
-    border: 0;
-    font-weight: 700;
-    padding: 0.5rem 1rem;
-    border-radius: 1rem;
-    color: white;
+/* Shared button style */
+button,
+.button {
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 1.5rem;
+    font-weight: 600;
     cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.button,
+button.button,
+button.save,
+button.cancel,
+.edit-btn,
+.delete-btn,
+#browseButton,
+#removeImageButton {
+    color: #fff;
+}
+
+.button,
+button.button {
+    background: #3834b7;
+}
+
+.button:hover,
+button.button:hover {
+    background: #232170;
 }
 
 button.save,
-#createButton,
 #browseButton {
     background: rgb(3, 136, 3);
 }
 
 button.save:hover,
-#createButton:hover,
 #browseButton:hover {
     background-color: rgb(3, 103, 3);
 }
@@ -104,7 +134,7 @@ button.cancel:hover {
 
 #contentArea {
     display: grid;
-    grid-template-columns: auto auto;
+    grid-template-columns: 1fr 1fr;
     gap: 1rem;
 }
 
@@ -165,13 +195,6 @@ dialog::backdrop {
     display: flex;
     gap: 1rem;
     justify-content: center;
-}
-
-/* Create button */
-#createButton {
-    margin: 2rem auto;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
 }
 
 #status p {
@@ -328,22 +351,33 @@ textarea:user-invalid+.validation {
     margin: 0.5rem 0;
 }
 
+.item-info section span {
+    white-space: pre;
+}
+
 section.breed,
 section.adoption,
-section.food {
+section.food,
+section.owner {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     ;
     background: white;
-    border-radius: 1rem;
+    border-radius: 1.5rem;
     border: 1px solid #ccc;
 }
 
 section.food img,
 section.adoption img {
     width: 1.5rem;
+}
+
+section.owner img {
+    width: 2rem;
+    margin: -.25rem 0 -.25rem -.5rem;
+    border-radius: 1rem;
 }
 
 
@@ -394,6 +428,7 @@ section.adoption img {
 
 .description {
     max-width: 32rem;
+    margin-bottom: auto;
 }
 
 
@@ -427,8 +462,7 @@ meter::-webkit-meter-even-less-good-value {
     align-items: center;
     gap: 0.5rem;
     font-weight: 300;
-    padding: 0 3rem 0 1rem;
-
+    padding: 0 0 0 1rem;
 }
 
 .stat span {
@@ -446,8 +480,8 @@ meter::-webkit-meter-even-less-good-value {
     width: 100px;
     height: 100px;
     display: inline-block;
-    -webkit-mask-image: url(./assets/cat.svg);
-    mask-image: url(./assets/cat.svg);
+    -webkit-mask-image: url(/assets/cat.svg);
+    mask-image: url(/assets/cat.svg);
     -webkit-mask-size: contain;
     mask-size: contain;
     -webkit-mask-repeat: no-repeat;
@@ -567,4 +601,97 @@ meter::-webkit-meter-even-less-good-value {
 .item-card {
     border-radius: 8px;
     overflow: hidden;
+}
+
+
+header img {
+    width: 4rem;
+    height: 4rem;
+}
+
+#profile img {
+    border-radius: 50%;
+}
+
+
+#profile {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: left;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.5rem 2rem;
+    border-radius: 0.5rem;
+    margin: 1rem;
+}
+
+
+
+#profile h4,
+#profile h5 {
+    margin: 0;
+}
+
+.site-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin: 2rem auto 1rem auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 70rem;
+}
+
+.site-title h1 {
+    text-align: left;
+    margin: 0;
+    font-family: "BBH Sans Hegarty", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+}
+
+.site-title h3 {
+    margin: 0.25rem 0 0 0;
+    font-weight: 400;
+
+
+}
+
+.site-title h3 a {
+    color: #000;
+}
+
+#logo {
+    width: 4rem;
+    height: 4rem;
+    cursor: pointer;
+}
+
+#controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.filter-label {
+    background: white;
+    border-radius: 2rem;
+    padding: 0.5rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.filter-label img {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+#dataFilter {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    font-family: inherit;
 }
